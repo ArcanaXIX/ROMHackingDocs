@@ -1,0 +1,646 @@
+		     LEO ARCANAXIX'S
+	     GHOST TRICK: PHANTOM DETECTIVE
+	    BIG ROMHACKING REFERENCE DOCUMENT
+
+A document of everything I have discovered about Ghost Trick 
+in the process of developing a hack for it.
+
+This document is organized into the following sections:
+
+I.	ROM OVERVIEW
+
+	a.  File Compression
+	b.  Name Conventions
+	c.  Stage Directory List
+	d.  Big-Picture ROM Structure
+
+II.	DETAILED INFORMATION
+
+	a.  Scene Isolation/Testing
+	b.  Language Files
+	    i.  Scene files
+	    ii. System files
+	c.  arm9.bin
+	    i.  Assembly code
+	    ii. Human-Readable code
+	d.  Overlay Files
+
+III.	CREDITS
+
+IV.	CONTACT
+
+
+
+	+++++++++++++++++++++++++++++++++++++++++++++++
+	+*####################=++#%@#################*+
+	+*#####################*+---@################*+
+	+*#####################*=@%#+**##############*+
+	+*#####################=.+##@################*+
+	+*####################=++-*##*+*#############*+
+	+*##################*=#%@###-++=#############*+
+	+*#################**#@%####@+=##############*+
+	+*##############++-=+%####*++++##############*+
+	+*#############=++-#######*+*################*+
+	+*#############=@@#######-++=*###############*+
+	+*###########**+##########*+*################*+
+	+*##########*@@#############+:..#############*+
+	+*#########*:::#############@-::..###########*+
+	+*#########.:===@@@@@@@@@@@@===@@@###########*+
+	+*##########-==+++###%***+*##=-=--###########*+
+	+*##########.++=**#@@#===*+=@##+**###########*+
+	+*##########*++###@######=--###+..###########*+
+	+*###########++-##=############+**###########*+
+	+*###########**+#############--+==###########*+
+	+*##############@@###########@@=#############*+
+	+*#############=++-#########-++=#############*+
+	+*##############**:+*%===%#*=**##############*+
+	+++++++++++++++++++++++++++++++++++++++++++++++
+
+
+------------------------------------------------------------
+
+	 ~*~*~*~*~ || I. ROM OVERVIEW || ~*~*~*~*~	
+
+------------------------------------------------------------
+
+			~*~*~*~*~*~
+
+------------------ a. File Compression ---------------------
+
+			~*~*~*~*~*~
+
+This information will be relevant for basically everything 
+that follows, so I am placing it first.
+
+Almost every single file in the Ghost Trick ROM is 
+compressed via LZ77. To analyze the game's code, the files 
+must be decompressed during/after extraction, and re-
+compressed during re-insertion.
+
+If you need a tool to help with this, here is a guide on 
+using CrystalTile2 to look at the files within the ROM, and 
+de-compress them for analysis:
+
+	1. open the ROM file in CrystalTile2
+	2. click on the grey DS icon just under "Window"
+	   (this opens NDS file system information viewer)
+	3. right-click on a compressed file (ex: arm9.bin)
+	4. select "Extract(U)..."
+	   **"Extract(U)" decompresses the file.
+	   **"Export" does NOT.
+	5. you have extracted a decompressed file!
+	6. perform desired edits and analysis.
+	7. right-click on the file in the NDS viewer again.
+	8. select "Compression..." to re-insert.
+	   **"Compression" both compresses and re-inserts.
+	   **"Import" does NOT compress before inserting.
+
+
+Basically, use "Extract(U)" and "Compression" to decompress 
+and re-compress files during removal and insertion. If you 
+prefer to use a different tool to decompress and re-
+compress, you can use "Export" and "Import" instead.
+
+If you do not see "Extract(U)..." or "COmpression..." it 
+means the file is not compressed [as far as CT2 can tell].
+
+~*~
+
+HEREAFTER, THIS DOCUMENT WILL DROP THE ".lz" FROM ALL FILE 
+NAMES UNLESS IT IS NECESSARY TO DISTINGUISH THE FILE FROM 
+ONE WITH AN OTHERWISE IDENTICAL NAME.
+
+It is assumed that you are decompressing all compressed 
+files before analyzing or modifying them.
+
+
+			~*~*~*~*~*~
+
+------------------ b. Name Conventions ---------------------
+
+			~*~*~*~*~*~
+
+In the plaintext-legible code found in the game's files, I 
+have noticed the following conventions that may be useful to 
+locate relevant code. This is ABSOLUTELY NOT exhaustive.
+
+Character Names
+
+	cicel 			Sissel
+	linne 			Lynne
+	jawed 			Jowd
+	cicel_evil 		Yomiel
+
+
+Gameplay Shorthand
+
+	RBM			Rollback Menu
+	SV			Soul Vision
+	st			"stage" [directory]
+
+
+Common Terms
+
+	Rollback Menu [RBM]	menu to turn back time
+	Soul Vision [SV]*	ghost mode
+	Normal	 		default gameplay
+	Main 			"Main" screen [bottom]**
+	Sub			"Sub" screen [top]**
+	Demo 			in-engine cutscene
+	Game			gameplay scene
+
+
+Notes:
+
+* "Soul" is used in lieu of "Ghost" most of the time.
+
+** In the title screen - and seemingly the title screen only 
+- the main screen is the top and the sub screen is the 
+bottom. In every other scene, the main screen is the bottom 
+and the sub screen is the top.
+
+~*~
+
+When searching for plaintext code, try all lowercase first, 
+then first letter uppercase, then other combinations 
+including all caps. It is not 100% internally consistent!
+
+
+			~*~*~*~*~*~
+
+---------------- c. Stage Directory List -------------------
+
+			~*~*~*~*~*~
+
+Ghost Trick's gameplay scenes are organized in directories 
+named "st##," each with a unique number. Each directory is 
+associated with a location, presumably "stage" - hence "st." 
+Here is a list of the actual numeric identifiers:
+
+	st01 	- Junkyard
+	st02 	- Super's office
+	st03 	- Police station
+	st04 	- Chicken Dinner
+	st04_01	- Chicken Dinner, kitchen
+	st06 	- Camilla and Missile's apartment
+	st07 	- Camilla's old decrepit house
+	st09 	- Justice Minister
+	st11 	- Head honcho's office
+	st13 	- Park
+	st14 	- Submarine
+	st15 	- End credits at Camilla's house
+
+These are generically referred to as "st##" in the following 
+section, but you can reference this list for examples.
+
+
+			~*~*~*~*~*~
+
+-------------- d. Big-Picture ROM Structure ----------------
+
+			~*~*~*~*~*~
+
+This is a quick-and-dirty overview of what files the game 
+seems to reference, in what order, to load a particular game 
+state. Some of this information is also discussed in the 
+ARM9 and Overlay sections below.
+
+When you power on the console...
+
+	Game Boot 		(uses Overlay9_0000)
+
+	Capcom logo 		(uses Overlay9_0001)
+
+	Title Screen 		(uses Overlay9_0005)
+
+	- New Game:	loads st01 directory via route.xml
+	- Continue: 	loads Overlay9_0003
+	- Chapter:	loads Overlay9_0003
+
+	Continue 		(uses Overlay9_0003)
+
+	- Loads specified directory + scene from save file
+	- Some progression info also loaded from save file
+
+	Chapter Select 		(uses Overlay9_0003)
+
+	- Loads st## directory from chapter.xml
+	- probably also passes some progression info
+
+	chapter.xml
+
+	- Defines which directory to load for each chapter:
+		1 - 	st01/	st01_root.xml
+		2 - 	st14/	st14_root.xml
+		3 - 	st06/	st06_root.xml
+			etc.
+	- may also encode progression info [not analyzed]
+
+	st##/	st##_root.xml
+
+	- Defines all game scenes set in this stage
+	  Ex:
+		st01/	st01_game000_Expand.xml
+		st01/	st01_game001_Expand.xml
+		etc.
+	- Determines which of these scenes to load
+	
+	st##/	st##_game###_Expand.xml
+
+	- Individual game scene code!
+	- Logic, gameplay, animations contained here
+
+
+Recap:
+
+Whether by loading a save, selecting a chapter, or starting 
+a new game; we arrived at a stage directory [st##]. This 
+directory pointed us to a game scene to load.
+
+These "st##_game###_Expand.xml" files contain most of the 
+code for each individual scene in the game. For more 
+detailed information and exceptions, see Section II.
+
+~*~
+
+At the end of a scene, the game will reference the st## root 
+to load the next scene there... UNLESS...!!
+
+	phone.xml
+	- Defines st## directories to access via phone line
+	- Format comparable to chapter.xml
+
+That's right, the phone line is a frequent mechanism for how 
+you access different stages in the game.
+
+The phone.xml file seems to act similarly to chapter.xml by 
+pointing to the different stage directories in this case.
+
+~*~
+
+In addition to these files, arm9.bin is always loaded into 
+memory, and it is safe to assume it is referenced often by 
+the game code.
+
+
+------------------------------------------------------------
+
+	~*~*~*~*~ || II. DETAILED INFO || ~*~*~*~*~	
+
+------------------------------------------------------------
+
+			~*~*~*~*~*~
+
+-------------- a. Scene Isolation/Testing ------------------
+
+			~*~*~*~*~*~
+
+This section provides a little more information on how 
+individual scenes can be isolated for testing, as well as 
+known mechanisms that cause them to load differently.
+
+The order they are declared in the stage directory root file 
+determines which scene is loaded upon inquiry, and the state 
+it is loaded in. For example, the first scene in 
+st01/st01_root.xml - and thus the first scene loaded in a 
+new game - is:
+
+	st01/	st01_game000_Expand.xml
+
+But if that is overwritten with:
+
+	st01/	st01_game022_Expand.xml
+
+...then game022 will be loaded on a new game, at the new 
+game state, instead. This kind of replacement can be used to 
+isolate and identify desired scenes for hacking.*
+
+Doing so reveals that certain scene behaviors are impacted 
+by how the scene is loaded, and are not determined within 
+the scene code itself.
+
+	These include:
+
+		- People/Phone database
+		- Sissel's Rollback Menu sprite
+
+The information these pull from is passed either directly 
+from the save file or from the chapter.xml->st##_root.xml 
+file when loading a chapter. The precise mechanism behind 
+them is not fully understood as of the time of writing this.
+
+~*~
+
+* If desired, you can even point to a stage in a different 
+directory. st01_root.xml can have a reference to 
+st13/st13_game032_Expand.xml if you want it to.
+
+
+			~*~*~*~*~*~
+
+--------------- b. Language-Specific Files -----------------
+
+			~*~*~*~*~*~
+
+Ghost Trick's USA version also contains the code for 
+multiple other languages. It is not always intuitive what 
+information the game draws from the generic/JP files versus 
+the language-specific files.
+
+This section is generalized and applies to any of these 
+languages. For English, the format "[language].xml" refers 
+to "en.xml".
+
+Here are my findings on the subject:
+
+
+		     i. Scene files
+
+st##/	st##_game###_expand.[language].xml
+
+These files provide updated references to the text the game 
+should display for each line of dialogue, AND the sprite 
+that should display alongside it. This means any changes to 
+the portrait sprites associated with individual textboxes 
+must be made *per language.*
+
+The remaining code for the scene - which includes all of the 
+scene logic, some UI rendering instructions, animations, etc 
+- is in the original JP file, which looks like:
+
+st##/	st##_game###_expand.xml
+
+
+		    ii. System files
+
+system/	system_0000.[language].xml.bin
+system/	system_0000.[language].xml.lz
+
+The ".lz" file is a compressed version of the ".bin" file - 
+however, note that **THE GAME USES THE ".bin" VERSION,** and 
+the reason for this redundancy is not clear.
+
+This file provides references to text for generic system 
+messages that are called from multiple scenes, such as 
+Sissel's dialogue in the Rollback  menu and the phone-line-
+down scene.
+
+While the phone-line-down menu text here also contains a 
+sprite reference, similar to game scene dialogue; the 
+Rollback menu's sprite is NOT indicated by the system_0000 
+files at all.
+
+~*~
+
+system/	database_0000_Expand.[language].xml.bin
+system/	database_0000_Expand.[language].xml.lz
+
+As before, the game appears to use the ".bin" version.
+
+This file contains updated localized text for the 
+people/phone directory.
+
+It ALSO contains references to the *animations* for the 
+People entries. The portrait sprites, however, are defined 
+in Overlay9_0006, along with other UI elements.
+
+~*~
+
+These particular system files are notable in that the 
+language-specific versions seem to completely replace the 
+generic/JP one, rather than supplement it.
+
+
+			~*~*~*~*~*~
+
+----------------------- c. arm9.bin ------------------------
+
+			~*~*~*~*~*~
+
+ARM9 is the name of the more powerful [and most often used] 
+processor for the Nintendo DS. The other is ARM7, and as I 
+understand it, ARM7 is mostly used for GBA backwards 
+compatibility and sound processing. I have not looked into 
+ARM7, but have extensively looked into ARM9.
+
+Below is what I currently understand about arm9.bin in Ghost 
+Trick. Normal gameplay scenes do not use any of the Overlays 
+[see section d], so arm9.bin itself contains the 
+instructions for executing game code in these contexts.
+
+
+		     i. Assembly Code
+
+
+The majority of arm9 contains very low-level instructions 
+that are not easily human-readable. They can be looked at by 
+loading the Ghost Trick ROM into DeSmuME and launching the 
+Disassembler. arm9.bin's contents will be loaded into RAM 
+starting at address 0x02000000, so if you jump to that 
+address you can see its contents.
+
+Explaining ARM assembly language is beyond the scope of this 
+document (and I myself barely have a beginner's grasp on 
+it), but you should see commands such as:
+
+		B | STR | ADD | SWI | MOV
+
+etc. I will link some resources on ARM in Section III.
+
+The most useful tip I have for understanding the ARM 
+disassembly is to look at the PC register on the right side, 
+as it indicates the place in memory where the next command 
+will be executed. Pausing the ROM and using the Disassembler 
+to proceed frame-by-frame, using that register as a guide, 
+will help you make sense of where in the code it is 
+executing from.
+
+~*~
+
+If you do not see comprehensible commands, switch to Thumb 
+instead of ARM in the Disassembler. "Auto" may not be 
+detecting it properly.
+
+
+		 ii. Human-Readable Code
+
+
+There are blocks of human-readable plaintext code in 
+arm9.bin that allow us to infer what processes are being 
+called. I have not exhaustively tested this code, and 
+editing it has resulted in unpredictable behavior; but the 
+following is what I have been able to glean so far.
+
+The "Name Conventions" section may provide useful 
+information to help guide your search, if there is a 
+particular behavior you are looking for.
+
+~*~
+
+Certain code declarations begin with a "p" prefix, and I 
+believe these indicate instructions to handle transitions 
+from one type of gameplay to another. I assume "p" stands 
+for "process," but this may be incorrect.
+
+Examples I was able to narrow down definitively:
+
+	Process Name			Function
+
+	pGameMainRBMforNormal		load Rollback Menu
+	- called when hourglass button is pressed in a
+	  default gameplay setting
+
+	pGameMainRBMforSV		load Rollback Menu
+	- called when hourglass button is pressed in a
+	  Ghost Mode gameplay setting
+
+	pGameMainTalk			end dialogue
+	- called at completion of dialogue sequence	
+	
+Understanding the code behind these processes will require 
+looking at the assembly code portion of arm9.bin.
+
+~*~
+
+Other prefixes I have encountered in the arm9.bin plaintext:
+
+	Prefix	Examples			Meaning?
+
+	p	pGameMainRBMforNormal		process?
+		pGameMainMonologue
+		pGameMainPhoneBook
+		pGameMainMovieRollback
+		pGameMainTalk
+
+	u	uSelectDestinyforGameOver	UI?
+		uSpriteCapture
+		uKaiwaGameOver
+		uFadeInMB
+
+	c	cBgCtrl::uBgDeadKaiwa		control?
+		cGameAppCmdTimeleap		command?
+		cCRCInitObject			calculation?
+		cCRCCalcObject
+
+	m	mChapterMax			variable?
+		mChapterNo
+		mChapterClearBit
+		mCharOfs
+		mPlttOfs
+		mAnimCtrl.currentTime
+
+I have a good idea of how these might be used by the game 
+from their names, but have not confirmed their function via 
+testing at this time.
+
+
+			~*~*~*~*~*~
+
+-------------------- d. Overlay Files ----------------------
+
+			~*~*~*~*~*~
+
+Ghost Trick has 7 ARM9 overlay files that are only used for 
+specific menus or in specific contexts. If what you are 
+looking to modify is in one of these, the overlay files are 
+very useful. If not, they can be disregarded as not 
+relevant. They are not referenced in normal gameplay.
+
+The ARM9 overlay table indicates that they all have the same 
+memory address they are loaded to:
+
+	0x	020D3A40
+
+This means that by launching the ROM in DeSmuME, then 
+looking at the Memory Viewer and/or Disassembler at that 
+address, you can see the contents of the currently loaded 
+overlay file. This allows us to determine what gameplay 
+scenarios reference them.
+
+From testing, the overlays are used for:
+
+	Overlay0_0000	- initial booting
+
+	Overlay9_0001 	- "Capcom" loading screen
+
+	Overlay9_0002 	- empty
+
+	Overlay9_0003 	- UI for "chapter select" and
+			  "continue from this time?" screens
+			  in main menu
+
+	Overlay9_0004 	- handles movie files [.mods], 
+			  including animation for going
+			  back in time [shortjump.mods]
+
+	Overlay9_0005 	- UI for main title screen menu
+
+	Overlay9_0006 	- UI for "People"/"Phone" database,
+			  INCLUDING SPRITES!!*
+
+~*~
+
+* This is notable because in nearly the entire rest of the 
+game, sprites are not coded as UI, but are referenced per 
+line of dialogue, per localization.
+
+
+------------------------------------------------------------
+
+	~*~*~*~*~ ||   III. CREDITS   || ~*~*~*~*~	
+
+------------------------------------------------------------
+
+			Tools Used
+
+CrystalTile 2
+	by angel-team
+	translated by cory1492 & FAST6191
+	- Primary all-around hacking tool
+	- Hex editor, compression, DS file extraction
+
+DeSmuME
+	by YopYop156 & DeSmuME Team
+	- NDS Emulator
+	- Disassembler + Memory viewer
+
+~*~
+
+		ARM9 Assembly Code Resources
+
+https://www.starcubelabs.com/reverse-engineering-ds/
+	- tutorial specific to NDS hacking
+	- includes screenshots of using DeSmuME
+
+https://www.coranac.com/tonc/text/asm.htm#sec-arm
+	- more general info on ARM
+	- not specific to NDS Hacking
+	- highly informative
+
+~*~
+
+		       Header Image
+
+https://www.asciiart.eu/image-to-ascii
+	- Based on icon extracted from ROM
+
+~*~
+
+		      Thanks to MLC!
+
+	- Brainstorming, bouncing ideas, theorycrafting
+	- Cracked save file checksum
+	- Researched loading from saves
+
+
+
+------------------------------------------------------------
+
+	~*~*~*~*~ ||     IV. CONTACT     || ~*~*~*~*~	
+
+------------------------------------------------------------
+
+ArcanaXIX on Romhacking.net
+leo_arcanaxix@protonmail.com
+
+v1.0 published 08/27/2025
