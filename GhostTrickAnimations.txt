@@ -1,0 +1,285 @@
+This document details all of the information I have about character/object
+animations in Ghost Trick. It is incomplete, but suffices for the purpose
+of swapping or modifying known existing animations.
+
+Please contact me with any questions or corrections. See end of document.
+
+Contents:
+
+I. General Info
+II. Data Format
+III. Examples
+IV. Instructions to Replace or Modify
+ a) instructions
+ b) obtaining desired I### value
+V. Contact / History
+
+
+			~*~*~*~*~*~*~*~*~*~*~*~
+			   I. GENERAL INFO
+			~*~*~*~*~*~*~*~*~*~*~*~
+
+
+For most scenes in the game, the animations are coded in the main .xml
+file for each stage, not the localization files. For example, the
+animations for the English version of st01_game000 are coded in
+st01_game000.xml.lz, and *NOT* in st01_game000.en.xml.lz.
+
+However, for the "People" menu, the animations are specifically coded per
+localization. This means that the animations for each person in the
+English version menu is pulled from "database_0000.expand.en.xml.bin,"
+*NOT* in "database_0000.expand.xml.bin." Furthermore, the ".bin.lz"
+(compressed) versions of these files appear to do nothing; it is the
+uncompressed .bin files that the game appears to use.
+
+The animations are coded in the format detailed below, then are named in
+the convention "charname_###.mtbl.xml". Generally several animations and
+other objects are defined in code one after the other in a large chunk of
+jargon hex code, followed by a list of names to reference all of these
+objects in order. Thus if you see a list of objects including a "mtbl.xml"
+corresponding to the character you are interested in, look to the code
+above that list for the data relevant to the animation.
+
+
+			~*~*~*~*~*~*~*~*~*~*~*~
+			    II. DATA FORMAT
+			~*~*~*~*~*~*~*~*~*~*~*~
+
+
+Animations are coded as follows.
+
+PARAMETERS:
+
+	I### = IDENTIFIER for animation. 2 bytes; specific then broad.
+		e.g. 60 0E and 61 0E are logically adjacent.
+
+	U### = UNKNOWN function. 2 bytes. Have seen 0000 and 0100.
+
+	Y# = VERTICAL placement value. 1 byte. +1 moves up a pixel.
+
+	X# = HORIZONTAL placement value. 1 byte. +1 moves *LEFT* a pixel.
+
+	NI = INITIAL DESIRED FRAME of animation. 1 byte.
+
+	[NI+1] = Second desired frame of animation. Should be one value
+		higher than NI if the desired effect is to play the
+		animation in order. [NI+2] is the third desired frame, and
+		so on. 1 byte each.
+
+	NZ = FINAL DESIRED FRAME of animation. 1 byte.
+
+(Note that because X# and Y# appear multiple times, all instances must be
+modified. From testing, I found that modifying only one instance caused
+the sprite to vibrate, as if the locations were called frame-by-frame in a
+cycle.)
+
+
+FORMAT:
+
+	FD FF 
+	I###
+	U###
+	FC FF 
+	Y# FF X# FF
+	Y# FF X# FF
+	F4 FF
+	Y# FF X# FF
+	[F5 FF +]*
+	NI 10 [NI+1] 10 [NI+2] 10 .... NZ 10
+	[FE or FF] FF**
+
+* Some animations also have subsequent sections here with additional [F4, F5, I have also seen F7...] followed by placement coordinates and sometimes additional frames. Have not determined why.
+
+** Not 100% certain, but it seems animations may end with either "FF FF" or "FE FF".
+
+See next section for an example of these parameters in context, and a list
+of select I### values for testing.
+
+
+			~*~*~*~*~*~*~*~*~*~*~*~
+			     III. EXAMPLES
+			~*~*~*~*~*~*~*~*~*~*~*~
+
+
+Animation from Database_0000.en.xml, with the following parameters:
+
+
+	I### = FD 01 [identifies the animation: Lynne shivering/sneezing]
+	U### = 00 00 [unknown function]
+	Y# = 3B [vertical placement]
+	X# = C7 [horizontal placement]
+	NI = 00 [starts at frame 00]
+	NZ = 21 [ends at frame 21]
+
+Looks like:
+
+	FD FF
+	FD 01
+	00 00
+	FC FF
+	3B FF C7 FF
+	3B FF C7 FF
+	F4 FF
+	3B FF C7 FF
+	00 10 01 10
+	02 10 03 10 
+	04 10 05 10
+	06 10 07 10
+	[.....]
+	1E 10 1F 10
+	20 10 21 10
+	*[NOTE- there is another section here marked by F7]*
+	FE FF
+
+NON-EXHAUSTIVE list of other animation identifiers [I###] by character:
+
+CAT
+78 0E
+
+YOMIEL
+F8 00
+FD 00
+
+CABANELLA
+FD 02
+
+LYNNE
+00 04
+01 04
+6B 07
+6C 07
+60 0E
+61 0E
+65 0E
+66 0E
+69 0E
+
+CAMILLA
+B9 08
+BE 08
+BF 08
+36 0E
+D8 FF
+39 0E
+3A 0E
+3B 0E
+
+JOWD
+47 0E
+48 0E
+49 0E
+4A 0E
+
+
+			~*~*~*~*~*~*~*~*~*~*~*~
+			   IV. INSTRUCTIONS
+			 TO REPLACE OR MODIFY
+			~*~*~*~*~*~*~*~*~*~*~*~
+
+
+a) INSTRUCTIONS
+
+These instructions assume the identifier of the desired animations [I###]
+are known. The list in EXAMPLES provides some values for testing. If it is
+not known, section b outlines some guidelines on obtaining these
+identifiers.
+
+Every step will be accompanied by an example of my process used to replace
+Yomiel's corpse with a short animation of Sissel the cat in the "People"
+log menu.
+
+NOTE: the target animation code CANNOT BE LONGER than the original
+animation code. If it is shorter it can be padded with null bytes, but if
+it is longer, you will have to choose a range of frames to play.
+
+	1. Replace current I### value with that of desired animation.
+
+		EX: database_0000_Expand.en.xml.bin
+		change address 36-37 from F8 00 [Yomiel] to 78 0E [cat]
+
+		TIP: Search "FDFF[I###]" to locate the original animation
+		to be modified/replaced.
+
+	2. Check in emulator. Modify placement values until correct.
+
+		EX: database_0000_Expand.en.xml.bin
+		change address 3E, 42, 48 from C6 to D9 [Y#] to move up
+		change address 40, 44, 4A from 58 to 50 [X#] to move right
+
+		TIP: remember + for X# values moves LEFT, not right.
+
+		NOTE: must update all values or sprite will vibrate.
+
+	3. Use remaining bytes between [F4 FF Y# FF X# FF] and [FE/FF FF]
+	to list desired frames.
+
+		EX: database_0000_Expand.en.xml.bin
+		change address 4A-6F to:
+			0D 10 0E 10 0F 10 10 10 11 10 12 10 13 10 14 10 15
+			10 16 10 17 10 18 10 19 10 1A 10 1B 10 1C 10 1C 10
+			1C 10 1C 10
+		
+		There is some artistry in determining what frames to use
+ 		when pasting a long animation to a smaller space. In this
+		case, I decided to have it hang on the "1C" frame before
+		looping rather than fit in 3 frames of the cat turning.
+
+		TIP: you don't have to start at frame 00! Experiment!
+		You can also list a frame multiple times in a row to hold
+		it, or only specify one frame and treat the animation as a
+		still image.
+		
+
+b) OBTAINING DESIRED I### VALUE
+
+I have not made a comprehensive catalog because that would be extremely
+difficult and time-consuming. However, if there is a particular animation
+you are interested in, there is a way to narrow down which it might be.
+
+Locate the .xml file of the scene the animation plays in. If you are not
+sure about how to do that, that is beyond the scope of this document but
+you can contact me. See the end of this document.
+
+The animations are defined in these files using the above format, and are
+catalogued at the bottom using the convention "st##_name_###.mtbl.xml". 
+
+For example, st15_demo000_Expand.xml.lz (the first credits scene) has the
+following beginning at memory address 6E5E (once decompressed):
+
+st15_neko_000.mtbl.xml
+st15_neko_001.mtbl.xml
+st15_neko_005.mtbl.xml
+etc.
+
+This told me that somewhere in this scene I would find a few animations
+for the cat. To search for specific characters, bear in mind the spelling
+is slightly different as this was coded in Japanese. The naming
+conventions are as follows:
+
+cicel (Yomiel!Sissel, Ghost!Sissel)
+mama (Camilla's mother)
+neko (Cat Sissel)
+girl (Camilla)
+jodo (Jowd)
+linne (Lynne)
+
+etc. 
+
+Then, by searching the preceding code for strings beginning with "FD FF"
+you can catalog all of the animations used in the scene and brute force
+them until you are able to locate the desired animation. 
+
+
+			~*~*~*~*~*~*~*~*~*~*~*~
+			 V. CONTACT / HISTORY
+			~*~*~*~*~*~*~*~*~*~*~*~
+
+
+ArcanaXIX on Romhacking.net
+leo_arcanaxix@protonmail.com
+
+I don't check these often, but I DO check them, and I will get back to you
+eventually.
+
+DOCUMENT cREATED 5/30/2022.
+PUBLISHED 8/3/2022.
